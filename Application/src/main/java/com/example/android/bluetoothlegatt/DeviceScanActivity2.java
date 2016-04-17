@@ -96,13 +96,17 @@ public class DeviceScanActivity2 extends ListActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.main, menu);
+
+        menu.findItem(R.id.menu_stop).setVisible(mScanning);
+        menu.findItem(R.id.menu_scan).setVisible(!mScanning);
+
         if (!mScanning) {
-            menu.findItem(R.id.menu_stop).setVisible(false);
-            menu.findItem(R.id.menu_scan).setVisible(true);
+//            menu.findItem(R.id.menu_stop).setVisible(false);
+//            menu.findItem(R.id.menu_scan).setVisible(true);
             menu.findItem(R.id.menu_refresh).setActionView(null);
         } else {
-            menu.findItem(R.id.menu_stop).setVisible(true);
-            menu.findItem(R.id.menu_scan).setVisible(false);
+//            menu.findItem(R.id.menu_stop).setVisible(true);
+//            menu.findItem(R.id.menu_scan).setVisible(false);
             menu.findItem(R.id.menu_refresh).setActionView(
                     R.layout.actionbar_indeterminate_progress);
         }
@@ -127,6 +131,10 @@ public class DeviceScanActivity2 extends ListActivity {
     protected void onResume() {
         super.onResume();
 
+        // Initializes list view adapter.
+        mLeDeviceListAdapter = new LeDeviceListAdapter();
+        setListAdapter(mLeDeviceListAdapter);
+
         // Ensures Bluetooth is enabled on the device.  If Bluetooth is not currently enabled,
         // fire an intent to display a dialog asking the user to grant permission to enable it.
         if (!mBluetoothAdapter.isEnabled()) {
@@ -135,11 +143,9 @@ public class DeviceScanActivity2 extends ListActivity {
                 startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
             }
         }
-
-        // Initializes list view adapter.
-        mLeDeviceListAdapter = new LeDeviceListAdapter();
-        setListAdapter(mLeDeviceListAdapter);
-        scanLeDevice(true);
+        else {
+            scanLeDevice(true);
+        }
     }
 
     @Override
@@ -177,11 +183,7 @@ public class DeviceScanActivity2 extends ListActivity {
     private void scanLeDevice(final boolean enable) {
         if (enable) {
             // Stops scanning after a pre-defined scan period.
-            mHandler.postDelayed(() -> {
-                mScanning = false;
-                RxBle.stopScan(mBluetoothAdapter);
-                invalidateOptionsMenu();
-            }, SCAN_PERIOD);
+            mHandler.postDelayed(() -> stopScan(), SCAN_PERIOD);
 
             Log.d(TAG, "Scanning on thread: " + Thread.currentThread().toString());
             mScanning = true;
@@ -190,9 +192,17 @@ public class DeviceScanActivity2 extends ListActivity {
                     .subscribe(this::handleResult);
 
         } else {
-            mScanning = false;
-            RxBle.stopScan(mBluetoothAdapter);
+            if (mScanning) {
+                mScanning = false;
+                RxBle.stopScan(mBluetoothAdapter);
+            }
         }
+        invalidateOptionsMenu();
+    }
+
+    private void stopScan() {
+        mScanning = false;
+        RxBle.stopScan(mBluetoothAdapter);
         invalidateOptionsMenu();
     }
 
